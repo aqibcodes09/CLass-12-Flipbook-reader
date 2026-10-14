@@ -1,879 +1,524 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Class 12 STEM Flipbook Reader</title>
+    <title>Class 12 Smart E-Textbook Hub</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1',
-                            900: '#0c4a6e',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- PDF.js CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <!-- PageFlip CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- PDF.js Core & Worker -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <!-- StPageFlip for Real 3D Book Animation -->
+    <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            overflow: hidden;
-        }
-
-        /* Custom Scrollbars */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.05);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(156, 163, 175, 0.4);
-            border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(107, 114, 128, 0.8);
-        }
-
-        /* Glassmorphism effects */
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .glass-panel {
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        .dark .glass-panel {
             background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-
-        /* Book container wrapper styling */
-        #book-wrapper {
-            perspective: 2000px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .stpageflip-container {
-            margin: 0 auto;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
-        }
-
-        .page-wrapper {
-            background-color: #ffffff;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            user-select: none;
-        }
-
-        .page-number-tag {
-            position: absolute;
-            bottom: 8px;
-            font-size: 11px;
-            color: #888;
-            font-weight: 500;
-        }
-        .page-wrapper.even .page-number-tag { left: 12px; }
-        .page-wrapper.odd .page-number-tag { right: 12px; }
-
-        /* Smooth page turn animation container */
-        .page-loader-spinner {
-            border: 3px solid rgba(14, 165, 233, 0.2);
-            border-top: 3px solid #0ea5e9;
-            border-radius: 50%;
-            width: 28px;
-            height: 28px;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
-<body class="h-full bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
 
-    <!-- App Container -->
-    <div class="flex h-screen w-screen overflow-hidden">
-
-        <!-- Sidebar / Book Library -->
-        <aside id="sidebar" class="w-80 glass-panel flex-shrink-0 flex flex-col z-30 transition-all duration-300 transform -translate-x-full md:translate-x-0 absolute md:relative h-full border-r border-slate-200 dark:border-slate-800">
-            <!-- Sidebar Header -->
-            <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
-                        <i class="fa-solid me-0 fa-book-open text-lg"></i>
-                    </div>
-                    <div>
-                        <h1 class="font-bold text-base leading-tight tracking-wide text-slate-900 dark:text-white">Class 12 eBooks</h1>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">High-Perf PDF Flipbook</p>
-                    </div>
+    <!-- Top Navigation Bar -->
+    <header class="glass-panel sticky top-0 z-50 px-4 py-3 flex items-center justify-between border-b border-slate-800">
+        <div class="flex items-center space-x-3">
+            <button id="toggle-sidebar" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2.5 rounded-xl transition shadow-lg flex items-center justify-center">
+                <i class="fa-solid fa-bars text-lg"></i>
+            </button>
+            <div class="flex items-center space-x-2">
+                <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-book-open text-lg"></i>
                 </div>
-                <button id="close-sidebar-btn" class="md:hidden text-slate-500 hover:text-slate-800 dark:hover:text-white p-2">
+                <div>
+                    <h1 class="font-bold text-base md:text-lg tracking-wide text-white">Class 12 <span class="text-indigo-400">E-Library</span></h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Permanent Offline Storage & 3D Reader</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Status -->
+        <div class="flex items-center space-x-2 md:space-x-3">
+            <span id="storage-badge" class="text-xs px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1.5">
+                <i class="fa-solid fa-database text-[10px]"></i> <span id="saved-books-count">0</span> Saved
+            </span>
+            <label class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span class="hidden sm:inline">Upload PDF</span>
+                <input type="file" id="pdf-upload" accept="application/pdf" class="hidden" multiple>
+            </label>
+        </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <div class="flex-1 flex relative overflow-hidden">
+        
+        <!-- Sidebar: Books List & Thumbnail Drawer -->
+        <aside id="sidebar" class="glass-panel w-80 lg:w-96 flex-shrink-0 flex flex-col border-r border-slate-800 transition-all duration-300 z-40 absolute lg:relative inset-y-0 left-0 transform -translate-x-full lg:translate-x-0">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-books text-indigo-400"></i> My Textbooks
+                </h2>
+                <button id="close-sidebar" class="lg:hidden text-slate-400 hover:text-white p-1">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
 
-            <!-- Upload Zone -->
-            <div class="p-4">
-                <label for="pdf-upload" class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 rounded-2xl cursor-pointer bg-slate-50/50 dark:bg-slate-900/50 hover:bg-brand-50/30 dark:hover:bg-brand-950/20 transition-all duration-200 group">
-                    <div class="flex flex-col items-center justify-center pt-3 pb-3 text-center px-2">
-                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 group-hover:text-brand-500 mb-1 transition-colors"></i>
-                        <p class="text-xs font-semibold text-slate-700 dark:text-slate-300">Upload Textbook PDF</p>
-                        <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Drag & drop or click (500+ pages supported)</p>
-                    </div>
-                    <input id="pdf-upload" type="file" accept="application/pdf" multiple class="hidden" />
-                </label>
-            </div>
-
-            <!-- Preloaded / Uploaded Books List Header -->
-            <div class="px-4 py-2 flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-                <span>My Library (<span id="book-count">0</span>)</span>
-                <span class="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-medium">Class 12</span>
-            </div>
-
-            <!-- Books Scroll List -->
-            <div id="book-list" class="flex-1 overflow-y-auto px-3 py-1 space-y-2">
-                <!-- Empty state -->
-                <div id="empty-library-msg" class="text-center py-10 px-4 text-slate-400">
-                    <i class="fa-solid fa-folder-open text-3xl mb-2 opacity-50"></i>
-                    <p class="text-xs">No textbooks uploaded yet. Upload your Physics, Math or Chemistry PDFs!</p>
+            <!-- Book List Container -->
+            <div id="books-list" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <!-- Dynamically populated books -->
+                <div class="text-center py-12 text-slate-500 text-sm">
+                    <i class="fa-solid fa-folder-open text-3xl mb-3 block opacity-40"></i>
+                    No books uploaded yet.<br>Click "Upload PDF" to start!
                 </div>
             </div>
 
-            <!-- Sidebar Footer / Quick Tools -->
-            <div class="p-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
-                <button id="theme-toggle" class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors">
-                    <i class="fa-solid fa-moon dark:hidden text-slate-600"></i>
-                    <i class="fa-solid fa-sun hidden dark:inline text-amber-400"></i>
-                    <span id="theme-text">Dark Mode</span>
-                </button>
-                <button id="sound-toggle" class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" title="Toggle Page Flip Sound Effect">
-                    <i id="sound-icon" class="fa-solid fa-volume-high text-brand-500"></i>
-                    <span>Sound</span>
-                </button>
+            <!-- Thumbnail Quick-Jump Section (Active Book) -->
+            <div id="thumbnail-section" class="border-t border-slate-800 p-4 bg-slate-900/50 hidden">
+                <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <span>Page Thumbnails</span>
+                    <span id="thumb-count" class="text-[10px] text-indigo-400"></span>
+                </h3>
+                <div id="thumbnails-container" class="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
+                    <!-- Dynamic Page Thumbs -->
+                </div>
             </div>
         </aside>
 
-        <!-- Main Workspace View -->
-        <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-200/60 dark:bg-slate-900/80">
-
-            <!-- Top Header Navbar -->
-            <header class="h-16 glass-panel flex items-center justify-between px-4 z-20 border-b border-slate-200 dark:border-slate-800 shadow-sm">
-                <!-- Left Section: Mobile Toggle & Book Info -->
-                <div class="flex items-center gap-3">
-                    <button id="open-sidebar-btn" class="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800 rounded-lg">
-                        <i class="fa-solid fa-bars text-lg"></i>
-                    </button>
-                    <div class="hidden sm:block">
-                        <h2 id="current-book-title" class="font-semibold text-slate-800 dark:text-slate-100 text-sm max-w-[200px] md:max-w-md truncate">No Book Selected</h2>
-                        <p id="current-book-status" class="text-[11px] text-slate-500 dark:text-slate-400">Select a textbook to start reading</p>
-                    </div>
-                </div>
-
-                <!-- Center Controls: Page Navigation & Jump -->
-                <div class="flex items-center gap-2">
-                    <button id="btn-first-page" title="First Page" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg disabled:opacity-40 disabled:hover:bg-transparent">
-                        <i class="fa-solid fa-backward-step"></i>
-                    </button>
-                    <button id="btn-prev-page" title="Previous Page" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition flex items-center gap-1.5 text-xs font-semibold disabled:opacity-40">
-                        <i class="fa-solid fa-chevron-left"></i>
-                        <span class="hidden sm:inline">Prev</span>
-                    </button>
-
-                    <!-- Page Number Jump Box -->
-                    <div class="flex items-center bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 shadow-sm">
-                        <span class="text-xs text-slate-400 mr-1 hidden sm:inline">Page</span>
-                        <input id="input-page-num" type="number" min="1" value="1" class="w-12 text-center text-xs font-bold text-brand-600 dark:text-brand-500 bg-transparent focus:outline-none" disabled />
-                        <span class="text-xs text-slate-400 ml-0.5">/ <span id="total-pages-count">0</span></span>
-                        <button id="btn-go-page" class="ml-1 text-slate-400 hover:text-brand-500 text-xs px-1" title="Jump to page">
-                            <i class="fa-solid fa-arrow-right-to-bracket"></i>
-                        </button>
-                    </div>
-
-                    <button id="btn-next-page" title="Next Page" class="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg shadow-sm active:scale-95 transition flex items-center gap-1.5 text-xs font-semibold disabled:opacity-40">
-                        <span class="hidden sm:inline">Next</span>
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </button>
-                    <button id="btn-last-page" title="Last Page" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg disabled:opacity-40 disabled:hover:bg-transparent">
-                        <i class="fa-solid fa-forward-step"></i>
-                    </button>
-                </div>
-
-                <!-- Right Tools: View, Zoom & Fullscreen -->
-                <div class="flex items-center gap-1.5">
-                    <!-- Drawer Outline Button -->
-                    <button id="btn-toggle-outline" title="Thumbnails & Outline" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg">
-                        <i class="fa-solid fa-grip text-base"></i>
-                    </button>
-
-                    <!-- View Mode Toggle -->
-                    <button id="btn-single-double-view" title="Toggle Single/Double Page View" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg hidden sm:block">
-                        <i class="fa-solid fa-book-open text-base"></i>
-                    </button>
-
-                    <!-- Fullscreen Toggle -->
-                    <button id="btn-fullscreen" title="Toggle Fullscreen" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg">
-                        <i class="fa-solid fa-expand text-base"></i>
-                    </button>
-                </div>
-            </header>
-
-            <!-- Main Reading Canvas Flipbook Container -->
-            <div id="reading-area" class="flex-1 relative w-full h-full flex items-center justify-center p-2 sm:p-6 select-none overflow-hidden">
-                
-                <!-- Welcome Overlay / No Book Selected -->
-                <div id="welcome-screen" class="text-center max-w-md p-8 glass-panel rounded-3xl shadow-2xl z-10 border border-slate-200/50 dark:border-slate-800">
-                    <div class="w-20 h-20 bg-brand-500/10 text-brand-500 rounded-3xl flex items-center justify-center mx-auto mb-4 text-3xl">
-                        <i class="fa-solid fa-book-bookmark"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Class 12 Interactive Textbook Reader</h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-                        Upload heavy textbooks (Physics, Chemistry, Maths, Biology) to experience realistic 3D page curling, high-speed page jumps, and instant smooth reading without lag!
-                    </p>
-                    <label for="pdf-upload-welcome" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs rounded-xl shadow-lg shadow-brand-500/30 cursor-pointer transition active:scale-95">
-                        <i class="fa-solid fa-file-pdf"></i>
-                        <span>Select Class 12 PDF</span>
-                        <input id="pdf-upload-welcome" type="file" accept="application/pdf" multiple class="hidden" />
-                    </label>
-                </div>
-
-                <!-- Global Loading Indicator -->
-                <div id="loading-spinner" class="hidden absolute inset-0 bg-slate-900/40 backdrop-blur-md z-30 flex flex-col items-center justify-center text-white">
-                    <div class="page-loader-spinner mb-3"></div>
-                    <p id="loading-progress-text" class="text-xs font-medium tracking-wide">Parsing PDF Document...</p>
-                    <span id="loading-subtext" class="text-[10px] text-slate-300 mt-1">Preparing high-performance page cache</span>
-                </div>
-
-                <!-- Flipbook Canvas Mount Target -->
-                <div id="book-wrapper">
-                    <div id="flipbook" class="hidden"></div>
-                </div>
-            </div>
-
-            <!-- Page Thumbnails Drawer (Slide-Up Overlay) -->
-            <div id="thumbnails-drawer" class="absolute bottom-0 inset-x-0 h-48 glass-panel z-20 border-t border-slate-200 dark:border-slate-800 transform translate-y-full transition-transform duration-300 flex flex-col">
-                <div class="px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs">
-                    <span class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                        <i class="fa-solid fa-images text-brand-500"></i> Page Quick Navigation
+        <!-- Main Reader Viewport -->
+        <main class="flex-1 flex flex-col bg-slate-900/40 relative overflow-hidden">
+            
+            <!-- Reader Toolbar -->
+            <div id="reader-toolbar" class="glass-panel border-b border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 z-30 hidden">
+                <!-- Book Title & Current Info -->
+                <div class="flex items-center space-x-3">
+                    <h3 id="current-book-title" class="font-bold text-sm md:text-base text-white truncate max-w-[200px] md:max-w-xs"></h3>
+                    <span class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">
+                        Page <span id="current-page-num">1</span> of <span id="total-pages">1</span>
                     </span>
-                    <button id="close-drawer-btn" class="text-slate-400 hover:text-slate-700 dark:hover:text-white">
-                        <i class="fa-solid fa-xmark text-sm"></i>
-                    </button>
                 </div>
-                <div id="thumbnails-container" class="flex-1 overflow-x-auto p-3 flex gap-3 items-center">
-                    <!-- Dynamically generated canvas thumbnails -->
+
+                <!-- Page Jump & Zoom Controls -->
+                <div class="flex items-center space-x-2">
+                    <div class="flex items-center bg-slate-800 rounded-xl border border-slate-700 px-2 py-1">
+                        <span class="text-xs text-slate-400 mr-2 hidden sm:inline">Jump:</span>
+                        <input type="number" id="jump-page-input" min="1" class="w-12 bg-slate-900 text-center text-xs text-white rounded focus:outline-none py-0.5">
+                        <button id="jump-btn" class="ml-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1 rounded transition">Go</button>
+                    </div>
+
+                    <button id="fullscreen-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-expand"></i> <span class="hidden md:inline">Fullscreen</span>
+                    </button>
                 </div>
             </div>
 
+            <!-- Flipbook Stage Canvas -->
+            <div id="reader-viewport" class="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
+                <!-- Initial State Placeholder -->
+                <div id="reader-placeholder" class="text-center p-8 max-w-md">
+                    <div class="w-20 h-20 bg-indigo-600/10 text-indigo-400 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-indigo-500/20 shadow-xl">
+                        <i class="fa-solid fa-graduation-cap text-3xl"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-white mb-2">Select a Textbook to Read</h2>
+                    <p class="text-sm text-slate-400">Choose a book from your sidebar library or upload a new Class 12 PDF to begin your smart study session.</p>
+                </div>
+
+                <!-- Flipbook Container -->
+                <div id="flipbook-wrapper" class="hidden shadow-2xl rounded-xl overflow-hidden transition-transform duration-300">
+                    <div id="st-flipbook"></div>
+                </div>
+            </div>
+
+            <!-- Bottom Navigation Bar -->
+            <div id="reader-footer" class="glass-panel border-t border-slate-800 px-4 py-3 flex items-center justify-center space-x-4 z-30 hidden">
+                <button id="prev-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2 shadow">
+                    <i class="fa-solid fa-chevron-left"></i> Previous
+                </button>
+                <div class="text-xs text-slate-400 font-medium">
+                    Use arrow keys <kbd class="bg-slate-800 px-1.5 py-0.5 rounded text-slate-200">←</kbd> <kbd class="bg-slate-800 px-1.5 py-0.5 rounded text-slate-200">→</kbd> to turn pages
+                </div>
+                <button id="next-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2 shadow shadow-indigo-600/30">
+                    Next <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
         </main>
     </div>
 
-    <!-- Audio Element for Realistic Page Turning SFX -->
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex flex-col items-center justify-center">
+        <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p id="loading-text" class="text-sm font-medium text-slate-200">Processing PDF & caching pages...</p>
+    </div>
+
+    <!-- JavaScript Application Logic -->
     <script>
-        // Synthesizing sound effect programmatically using Web Audio API to avoid missing external audio assets
-        class PageSoundEffect {
-            constructor() {
-                this.audioCtx = null;
-                this.enabled = true;
+        // IndexedDB Permanent Storage Setup
+        const DB_NAME = "Class12TextbookDB";
+        const STORE_NAME = "pdfs";
+        let db = null;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                request.onupgradeneeded = (event) => {
+                    const database = event.target.result;
+                    if (!database.objectStoreNames.contains(STORE_NAME)) {
+                        database.createObjectStore(STORE_NAME, { keyPath: "id" });
+                    }
+                };
+            });
+        }
+
+        async function savePDFToDB(id, title, arrayBuffer) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], "readwrite");
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.put({ id, title, data: arrayBuffer });
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getAllPDFsFromDB() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], "readonly");
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function deletePDFFromDB(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], "readwrite");
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.delete(id);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // App State
+        let currentPDFDoc = null;
+        let pageFlipInstance = null;
+        let currentBookId = null;
+        let totalPagesCount = 0;
+        let isMobile = window.innerWidth < 768;
+
+        // DOM Elements
+        const sidebar = document.getElementById('sidebar');
+        const toggleSidebarBtn = document.getElementById('toggle-sidebar');
+        const closeSidebarBtn = document.getElementById('close-sidebar');
+        const pdfUploadInput = document.getElementById('pdf-upload');
+        const booksListEl = document.getElementById('books-list');
+        const savedBooksCountEl = document.getElementById('saved-books-count');
+        const readerPlaceholder = document.getElementById('reader-placeholder');
+        const flipbookWrapper = document.getElementById('flipbook-wrapper');
+        const readerToolbar = document.getElementById('reader-toolbar');
+        const readerFooter = document.getElementById('reader-footer');
+        const currentBookTitleEl = document.getElementById('current-book-title');
+        const currentPageNumEl = document.getElementById('current-page-num');
+        const totalPagesEl = document.getElementById('total-pages');
+        const jumpPageInput = document.getElementById('jump-page-input');
+        const jumpBtn = document.getElementById('jump-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const thumbnailSection = document.getElementById('thumbnail-section');
+        const thumbnailsContainer = document.getElementById('thumbnails-container');
+        const thumbCountEl = document.getElementById('thumb-count');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+
+        // Sidebar Toggle Handler
+        toggleSidebarBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+        });
+        closeSidebarBtn.addEventListener('click', () => {
+            sidebar.classList.add('-translate-x-full');
+        });
+
+        // Initialize App on Load
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await initDB();
+                await loadSavedBooksList();
+            } catch (err) {
+                console.error("IndexedDB initialization error:", err);
             }
-            init() {
-                if (!this.audioCtx) {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if (AudioContext) this.audioCtx = new AudioContext();
-                }
-            }
-            playTurnSound() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.audioCtx) return;
+        });
 
-                if (this.audioCtx.state === 'suspended') {
-                    this.audioCtx.resume();
-                }
-
-                // Create realistic paper rustle sound via shaped pink/white noise buffer
-                const bufferSize = this.audioCtx.sampleRate * 0.15; // 150ms length
-                const buffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
-
-                const noise = this.audioCtx.createBufferSource();
-                noise.buffer = buffer;
-
-                // Filter to mimic paper rustle frequency
-                const filter = this.audioCtx.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.value = 1200;
-                filter.Q.value = 1.2;
-
-                const gain = this.audioCtx.createGain();
-                gain.gain.setValueAtTime(0.15, this.audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.14);
-
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.audioCtx.destination);
-
-                noise.start();
-            }
-        }
-        const sfx = new PageSoundEffect();
-    </script>
-
-    <!-- App Logic Script -->
-    <script>
-        // Configure PDF.js Worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-        // Application State Management
-        const state = {
-            books: [],
-            currentBookId: null,
-            pdfDoc: null,
-            pageFlip: null,
-            totalPages: 0,
-            currentPage: 1,
-            isSinglePage: false,
-            soundEnabled: true,
-            renderedPages: new Map(), // High performance cache for rendered pages
-            renderingQueue: new Set(),
-            pageDimensions: { width: 450, height: 600 },
-        };
-
-        // DOM Elements References
-        const dom = {
-            sidebar: document.getElementById('sidebar'),
-            openSidebarBtn: document.getElementById('open-sidebar-btn'),
-            closeSidebarBtn: document.getElementById('close-sidebar-btn'),
-            pdfUpload: document.getElementById('pdf-upload'),
-            pdfUploadWelcome: document.getElementById('pdf-upload-welcome'),
-            bookList: document.getElementById('book-list'),
-            bookCount: document.getElementById('book-count'),
-            emptyMsg: document.getElementById('empty-library-msg'),
-            
-            // Header Controls
-            bookTitle: document.getElementById('current-book-title'),
-            bookStatus: document.getElementById('current-book-status'),
-            inputPageNum: document.getElementById('input-page-num'),
-            totalPagesCount: document.getElementById('total-pages-count'),
-            btnFirst: document.getElementById('btn-first-page'),
-            btnPrev: document.getElementById('btn-prev-page'),
-            btnNext: document.getElementById('btn-next-page'),
-            btnLast: document.getElementById('btn-last-page'),
-            btnGoPage: document.getElementById('btn-go-page'),
-            btnSingleDouble: document.getElementById('btn-single-double-view'),
-            btnFullscreen: document.getElementById('btn-fullscreen'),
-            btnToggleOutline: document.getElementById('btn-toggle-outline'),
-            
-            // Theme & Sound Controls
-            themeToggle: document.getElementById('theme-toggle'),
-            soundToggle: document.getElementById('sound-toggle'),
-            soundIcon: document.getElementById('sound-icon'),
-            
-            // Displays
-            welcomeScreen: document.getElementById('welcome-screen'),
-            loadingSpinner: document.getElementById('loading-spinner'),
-            loadingText: document.getElementById('loading-progress-text'),
-            bookWrapper: document.getElementById('book-wrapper'),
-            flipbook: document.getElementById('flipbook'),
-            
-            // Drawer
-            drawer: document.getElementById('thumbnails-drawer'),
-            drawerContainer: document.getElementById('thumbnails-container'),
-            closeDrawerBtn: document.getElementById('close-drawer-btn')
-        };
-
-        // Initialize Application
-        function initApp() {
-            setupEventListeners();
-            calculateOptimalPageDimensions();
-            window.addEventListener('resize', debounce(handleResize, 250));
-        }
-
-        // Calculate Responsive Book Dimensions
-        function calculateOptimalPageDimensions() {
-            const containerWidth = dom.bookWrapper.clientWidth || window.innerWidth;
-            const containerHeight = dom.bookWrapper.clientHeight || window.innerHeight;
-
-            const isMobile = window.innerWidth < 640;
-            state.isSinglePage = isMobile;
-
-            // Target aspect ratio for textbook pages roughly 1:1.35 (A4 ratio)
-            const targetHeight = Math.min(containerHeight - 40, 850);
-            const targetWidth = Math.min(
-                state.isSinglePage ? containerWidth - 30 : (containerWidth - 60) / 2,
-                targetHeight / 1.35
-            );
-
-            state.pageDimensions = {
-                width: Math.max(Math.floor(targetWidth), 280),
-                height: Math.max(Math.floor(targetWidth * 1.35), 380)
-            };
-        }
-
-        // Setup All UI Event Listeners
-        function setupEventListeners() {
-            // Sidebar Toggles
-            dom.openSidebarBtn.addEventListener('click', () => dom.sidebar.classList.remove('-translate-x-full'));
-            dom.closeSidebarBtn.addEventListener('click', () => dom.sidebar.classList.add('-translate-x-full'));
-
-            // Theme Switcher
-            dom.themeToggle.addEventListener('click', toggleTheme);
-
-            // Sound Toggle
-            dom.soundToggle.addEventListener('click', () => {
-                state.soundEnabled = !state.soundEnabled;
-                sfx.enabled = state.soundEnabled;
-                dom.soundIcon.className = state.soundEnabled ? 'fa-solid fa-volume-high text-brand-500' : 'fa-solid fa-volume-xmark text-slate-400';
-            });
-
-            // PDF Upload Listeners
-            dom.pdfUpload.addEventListener('change', handleFileUpload);
-            dom.pdfUploadWelcome.addEventListener('change', handleFileUpload);
-
-            // Navigation Buttons
-            dom.btnPrev.addEventListener('click', () => state.pageFlip && state.pageFlip.flipPrev());
-            dom.btnNext.addEventListener('click', () => state.pageFlip && state.pageFlip.flipNext());
-            dom.btnFirst.addEventListener('click', () => state.pageFlip && state.pageFlip.flip(0));
-            dom.btnLast.addEventListener('click', () => state.pageFlip && state.pageFlip.flip(state.totalPages - 1));
-            
-            // Jump to Page Number
-            dom.btnGoPage.addEventListener('click', executePageJump);
-            dom.inputPageNum.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') executePageJump();
-            });
-
-            // Keyboard Navigation (Arrow Keys)
-            document.addEventListener('keydown', (e) => {
-                if (document.activeElement === dom.inputPageNum) return;
-                if (e.key === 'ArrowLeft') state.pageFlip && state.pageFlip.flipPrev();
-                if (e.key === 'ArrowRight') state.pageFlip && state.pageFlip.flipNext();
-            });
-
-            // Toggle View Mode (Single vs Double page)
-            dom.btnSingleDouble.addEventListener('click', () => {
-                state.isSinglePage = !state.isSinglePage;
-                if (state.currentBookId) reloadCurrentBook();
-            });
-
-            // Fullscreen Toggle
-            dom.btnFullscreen.addEventListener('click', toggleFullscreen);
-
-            // Drawer Thumbnail Controls
-            dom.btnToggleOutline.addEventListener('click', () => {
-                dom.drawer.classList.toggle('translate-y-full');
-                if (!dom.drawer.classList.contains('translate-y-full')) {
-                    generateThumbnails();
-                }
-            });
-            dom.closeDrawerBtn.addEventListener('click', () => dom.drawer.classList.add('translate-y-full'));
-        }
-
-        // Handle File Selection
-        async function handleFileUpload(e) {
-            const files = Array.from(e.target.files);
+        // File Upload Handler with Permanent Storage
+        pdfUploadInput.addEventListener('change', async (e) => {
+            const files = e.target.files;
             if (!files.length) return;
 
-            showLoading(true, "Reading uploaded PDF file...");
+            loadingOverlay.classList.remove('hidden');
+            loadingText.textContent = "Saving textbooks permanently...";
 
-            for (const file of files) {
-                if (file.type !== 'application/pdf') continue;
-
-                const bookObj = {
-                    id: 'book_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                    title: file.name.replace(/\.[^/.]+$/, ""),
-                    file: file,
-                    size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
-                    uploadDate: new Date().toLocaleDateString()
-                };
-
-                state.books.push(bookObj);
-                renderBookSidebarItem(bookObj);
-            }
-
-            updateBookCount();
-            showLoading(false);
-
-            // Automatically load the latest uploaded book
-            if (state.books.length > 0) {
-                loadBookIntoReader(state.books[state.books.length - 1].id);
-            }
-        }
-
-        // Render Book Item in Sidebar
-        function renderBookSidebarItem(book) {
-            if (dom.emptyMsg) dom.emptyMsg.classList.add('hidden');
-
-            const item = document.createElement('div');
-            item.className = `book-item p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 hover:border-brand-500/50 cursor-pointer transition-all duration-200 flex items-center gap-3 group`;
-            item.dataset.id = book.id;
-
-            // Classify Subject Colors dynamically based on filename keywords
-            let badgeColor = 'bg-blue-500/10 text-blue-500';
-            let icon = 'fa-book';
-            const nameLower = book.title.toLowerCase();
-            if (nameLower.includes('physic')) { badgeColor = 'bg-purple-500/10 text-purple-500'; icon = 'fa-atom'; }
-            else if (nameLower.includes('chem')) { badgeColor = 'bg-emerald-500/10 text-emerald-500'; icon = 'fa-flask'; }
-            else if (nameLower.includes('math')) { badgeColor = 'bg-amber-500/10 text-amber-500'; icon = 'fa-calculator'; }
-            else if (nameLower.includes('bio')) { badgeColor = 'bg-rose-500/10 text-rose-500'; icon = 'fa-dna'; }
-
-            item.innerHTML = `
-                <div class="w-10 h-10 rounded-lg ${badgeColor} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                    <i class="fa-solid ${icon} text-base"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h4 class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-brand-500 transition-colors">${book.title}</h4>
-                    <div class="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
-                        <span>${book.size}</span>
-                        <span>•</span>
-                        <span>${book.uploadDate}</span>
-                    </div>
-                </div>
-                <i class="fa-solid fa-chevron-right text-xs text-slate-300 dark:text-slate-600 group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all"></i>
-            `;
-
-            item.addEventListener('click', () => loadBookIntoReader(book.id));
-            dom.bookList.appendChild(item);
-        }
-
-        function updateBookCount() {
-            dom.bookCount.textContent = state.books.length;
-        }
-
-        // Core Reader Loading Engine
-        async function loadBookIntoReader(bookId) {
-            const book = state.books.find(b => b.id === bookId);
-            if (!book) return;
-
-            state.currentBookId = bookId;
-            highlightActiveBook(bookId);
-
-            showLoading(true, "Opening PDF document...");
-
-            try {
-                // Read PDF file array buffer
-                const arrayBuffer = await book.file.arrayBuffer();
-                
-                // Destroy existing Flipbook instance if active
-                if (state.pageFlip) {
-                    state.pageFlip.destroy();
-                    state.pageFlip = null;
+            for (let file of files) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const bookId = 'book_' + Date.now() + '_' + Math.random().toString(36.substring(2, 7));
+                    const bookTitle = file.name.replace(/\.[^/.]+$/, "");
+                    await savePDFToDB(bookId, bookTitle, arrayBuffer);
+                } catch (err) {
+                    console.error("Error saving file:", err);
                 }
-
-                state.renderedPages.clear();
-                dom.flipbook.innerHTML = '';
-
-                // Load PDF via PDF.js worker
-                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                state.pdfDoc = await loadingTask.promise;
-                state.totalPages = state.pdfDoc.numPages;
-
-                // Update Header Infos
-                dom.bookTitle.textContent = book.title;
-                dom.bookStatus.textContent = `${state.totalPages} Pages • Class 12 Textbook`;
-                dom.totalPagesCount.textContent = state.totalPages;
-                dom.inputPageNum.disabled = false;
-                dom.inputPageNum.max = state.totalPages;
-                dom.inputPageNum.value = 1;
-
-                dom.welcomeScreen.classList.add('hidden');
-                dom.flipbook.classList.remove('hidden');
-
-                // Generate Placeholder Skeleton Pages for DOM
-                createPageElements();
-
-                // Initialize StPageFlip engine
-                initPageFlipEngine();
-
-                // Render initial viewport pages lazily
-                await renderPageOnDemand(1);
-                await renderPageOnDemand(2);
-
-                showLoading(false);
-
-                // Auto-close sidebar on mobile after selection
-                if (window.innerWidth < 768) {
-                    dom.sidebar.classList.add('-translate-x-full');
-                }
-
-            } catch (error) {
-                console.error("PDF Parsing Error: ", error);
-                showLoading(false);
-                alert("Failed to load PDF textbook. The file might be corrupted or unreadable.");
             }
-        }
 
-        // Create DOM Elements for Flipbook
-        function createPageElements() {
-            dom.flipbook.innerHTML = '';
+            pdfUploadInput.value = '';
+            await loadSavedBooksList();
+            loadingOverlay.classList.add('hidden');
+        });
 
-            for (let i = 1; i <= state.totalPages; i++) {
-                const pageDiv = document.createElement('div');
-                pageDiv.className = `page-wrapper ${i % 2 === 0 ? 'even' : 'odd'}`;
-                pageDiv.dataset.page = i;
+        // Load Books List from DB
+        async function loadSavedBooksList() {
+            const books = await getAllPDFsFromDB();
+            savedBooksCountEl.textContent = books.length;
 
-                // Skeleton Loader Placeholder inside page
-                pageDiv.innerHTML = `
-                    <div class="page-skeleton flex flex-col items-center justify-center p-6 h-full w-full bg-slate-50 dark:bg-slate-900 text-slate-300">
-                        <div class="page-loader-spinner mb-2"></div>
-                        <span class="text-[10px] text-slate-400">Rendering Page ${i}...</span>
+            if (books.length === 0) {
+                booksListEl.innerHTML = `
+                    <div class="text-center py-12 text-slate-500 text-sm">
+                        <i class="fa-solid fa-folder-open text-3xl mb-3 block opacity-40"></i>
+                        No books uploaded yet.<br>Click "Upload PDF" to start!
                     </div>
-                    <canvas id="page-canvas-${i}" class="hidden w-full h-full object-contain"></canvas>
-                    <div class="page-number-tag">${i}</div>
                 `;
-
-                dom.flipbook.appendChild(pageDiv);
+                return;
             }
+
+            booksListEl.innerHTML = '';
+            books.forEach(book => {
+                const bookCard = document.createElement('div');
+                bookCard.className = `group flex items-center justify-between p-3 rounded-xl border transition cursor-pointer ${currentBookId === book.id ? 'bg-indigo-600/10 border-indigo-500/30 text-white' : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-800/80'}`;
+                bookCard.innerHTML = `
+                    <div class="flex items-center space-x-3 overflow-hidden" onclick="openBook('${book.id}')">
+                        <div class="w-9 h-9 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-book"></i>
+                        </div>
+                        <div class="truncate">
+                            <h4 class="text-xs font-semibold truncate group-hover:text-indigo-300">${book.title}</h4>
+                            <p class="text-[10px] text-slate-500">Class 12 Textbook</p>
+                        </div>
+                    </div>
+                    <button onclick="deleteBook(event, '${book.id}')" class="text-slate-500 hover:text-red-400 p-1.5 transition">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
+                `;
+                booksListEl.appendChild(bookCard);
+            });
         }
 
-        // Initialize 3D PageFlip Library Instance
-        function initPageFlipEngine() {
-            calculateOptimalPageDimensions();
+        // Delete Book Handler
+        window.deleteBook = async function(event, id) {
+            event.stopPropagation();
+            if (confirm("Are you sure you want to permanently delete this textbook?")) {
+                await deletePDFFromDB(id);
+                if (currentBookId === id) {
+                    location.reload();
+                } else {
+                    await loadSavedBooksList();
+                }
+            }
+        };
 
-            const isMobile = window.innerWidth < 640 || state.isSinglePage;
+        // Open and Render Book in 3D Flipbook
+        window.openBook = async function(id) {
+            loadingOverlay.classList.remove('hidden');
+            loadingText.textContent = "Loading textbook pages...";
 
-            state.pageFlip = new St.PageFlip(dom.flipbook, {
-                width: state.pageDimensions.width,
-                height: state.pageDimensions.height,
-                size: "fixed",
-                minWidth: 260,
-                maxWidth: 1000,
-                minHeight: 350,
-                maxHeight: 1400,
-                maxShadowOpacity: 0.4,
-                showCover: false,
-                mobileScrollSupport: false,
-                usePortrait: isMobile,
-                startPage: 0
-            });
+            const books = await getAllPDFsFromDB();
+            const book = books.find(b => b.id === id);
+            if (!book) {
+                loadingOverlay.classList.add('hidden');
+                return;
+            }
 
-            state.pageFlip.loadFromHTML(document.querySelectorAll('.page-wrapper'));
-
-            // Page Flip Event Listeners
-            state.pageFlip.on('flip', (e) => {
-                state.currentPage = e.data + 1;
-                dom.inputPageNum.value = state.currentPage;
-
-                // Play Page Turn SFX
-                sfx.playTurnSound();
-
-                // On demand lazy load visible and nearby pages for zero lag
-                preloadPageRange(state.currentPage);
-            });
-
-            state.currentPage = 1;
-        }
-
-        // Optimized PDF Page Rendering using Canvas
-        async function renderPageOnDemand(pageNum) {
-            if (pageNum < 1 || pageNum > state.totalPages) return;
-            if (state.renderedPages.has(pageNum) || state.renderingQueue.has(pageNum)) return;
-
-            state.renderingQueue.add(pageNum);
+            currentBookId = book.id;
+            currentBookTitleEl.textContent = book.title;
 
             try {
-                const page = await state.pdfDoc.getPage(pageNum);
-                const pageDiv = dom.flipbook.querySelector(`[data-page="${pageNum}"]`);
-                if (!pageDiv) return;
+                const loadingTask = pdfjsLib.getDocument({ data: book.data });
+                currentPDFDoc = await loadingTask.promise;
+                totalPagesCount = currentPDFDoc.numPages;
+                totalPagesEl.textContent = totalPagesCount;
+                jumpPageInput.max = totalPagesCount;
 
-                const canvas = pageDiv.querySelector(`canvas`);
-                const skeleton = pageDiv.querySelector('.page-skeleton');
-                if (!canvas) return;
+                // UI transition
+                readerPlaceholder.classList.add('hidden');
+                flipbookWrapper.classList.remove('hidden');
+                readerToolbar.classList.remove('hidden');
+                readerFooter.classList.remove('hidden');
+                thumbnailSection.classList.remove('hidden');
+                thumbCountEl.textContent = `${totalPagesCount} Pages`;
 
-                const ctx = canvas.getContext('2d');
+                if (window.innerWidth < 768) {
+                    sidebar.classList.add('-translate-x-full');
+                }
 
-                // High DPI render calculation for crisp text viewing
-                const dpr = window.devicePixelRatio || 1;
-                const viewport = page.getViewport({ scale: 1.5 });
-
-                canvas.width = viewport.width * dpr;
-                canvas.height = viewport.height * dpr;
-
-                const renderContext = {
-                    canvasContext: ctx,
-                    transform: [dpr, 0, 0, dpr, 0, 0],
-                    viewport: viewport
-                };
-
-                await page.render(renderContext).promise;
-
-                if (skeleton) skeleton.classList.add('hidden');
-                canvas.classList.remove('hidden');
-
-                state.renderedPages.set(pageNum, true);
+                await buildFlipbookAndThumbnails();
+                await loadSavedBooksList();
 
             } catch (err) {
-                console.warn(`Error rendering page ${pageNum}:`, err);
-            } finally {
-                state.renderingQueue.delete(pageNum);
+                console.error("Error loading PDF document:", err);
+                alert("Failed to render PDF. Please ensure the file is valid.");
             }
-        }
 
-        // Smart Preloader for high page count textbooks (Loads current page +/- 2 pages in background)
-        function preloadPageRange(centerPage) {
-            const range = [centerPage, centerPage + 1, centerPage - 1, centerPage + 2, centerPage - 2];
-            range.forEach(p => {
-                if (p >= 1 && p <= state.totalPages) {
-                    renderPageOnDemand(p);
-                }
-            });
-        }
+            loadingOverlay.classList.add('hidden');
+        };
 
-        // Direct Page Jump
-        function executePageJump() {
-            if (!state.pageFlip) return;
-            let target = parseInt(dom.inputPageNum.value, 10);
-            if (isNaN(target)) target = 1;
-            target = Math.max(1, Math.min(target, state.totalPages));
+        // Build Flipbook & Thumbnails with Optimized Canvas Rendering
+        async function buildFlipbookAndThumbnails() {
+            const flipbookEl = document.getElementById('st-flipbook');
+            flipbookEl.innerHTML = '';
+            thumbnailsContainer.innerHTML = '';
+
+            // Calculate responsive book size
+            const viewportWidth = document.getElementById('reader-viewport').clientWidth;
+            const viewportHeight = document.getElementById('reader-viewport').clientHeight;
             
-            dom.inputPageNum.value = target;
-            state.pageFlip.flip(target - 1);
-        }
+            let bookWidth = Math.min(420, Math.floor((viewportWidth - 40) / (window.innerWidth >= 768 ? 2 : 1)));
+            let bookHeight = Math.min(580, Math.floor(viewportHeight - 80));
 
-        // Generate Bottom Drawer Canvas Thumbnails
-        async function generateThumbnails() {
-            if (!state.pdfDoc) return;
-            dom.drawerContainer.innerHTML = '';
+            if (bookWidth < 250) bookWidth = 250;
+            if (bookHeight < 350) bookHeight = 350;
 
-            const step = Math.max(1, Math.floor(state.totalPages / 30)); // Limit thumbnails to max 30 for speed
+            const pagesData = [];
 
-            for (let i = 1; i <= state.totalPages; i += step) {
-                const thumbBox = document.createElement('div');
-                thumbBox.className = `flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer group`;
+            // Render all pages to high-performance canvas elements
+            for (let i = 1; i <= totalPagesCount; i++) {
+                const page = await currentPDFDoc.getPage(i);
+                const viewport = page.getViewport({ scale: 1.5 });
                 
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                
+                await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                // Create page element for flipbook
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'page bg-white shadow-md flex items-center justify-center overflow-hidden';
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                pageDiv.appendChild(canvas);
+                flipbookEl.appendChild(pageDiv);
+
+                // Create Thumbnail
                 const thumbCanvas = document.createElement('canvas');
-                thumbCanvas.className = `w-20 h-28 object-cover rounded border-2 border-transparent group-hover:border-brand-500 transition-all shadow-sm bg-white`;
-                
-                const label = document.createElement('span');
-                label.className = `text-[10px] text-slate-500 font-semibold`;
-                label.textContent = `P. ${i}`;
+                const thumbCtx = thumbCanvas.getContext('2d');
+                const thumbViewport = page.getViewport({ scale: 0.2 });
+                thumbCanvas.width = thumbViewport.width;
+                thumbCanvas.height = thumbViewport.height;
+                await page.render({ canvasContext: thumbCtx, viewport: thumbViewport }).promise;
 
-                thumbBox.appendChild(thumbCanvas);
-                thumbBox.appendChild(label);
-
-                thumbBox.addEventListener('click', () => {
-                    state.pageFlip.flip(i - 1);
-                    dom.drawer.classList.add('translate-y-full');
+                const thumbItem = document.createElement('div');
+                thumbItem.className = 'cursor-pointer rounded border border-slate-700 overflow-hidden hover:border-indigo-500 transition bg-slate-950 text-center';
+                thumbItem.innerHTML = `<div class="p-0.5"></div><span class="text-[9px] text-slate-400 font-medium">${i}</span>`;
+                thumbItem.firstChild.appendChild(thumbCanvas);
+                thumbItem.addEventListener('click', () => {
+                    if (pageFlipInstance) {
+                        pageFlipInstance.flip(i - 1);
+                    }
                 });
-
-                dom.drawerContainer.appendChild(thumbBox);
-
-                // Render tiny thumbnail asynchronously
-                state.pdfDoc.getPage(i).then(page => {
-                    const viewport = page.getViewport({ scale: 0.2 });
-                    thumbCanvas.width = viewport.width;
-                    thumbCanvas.height = viewport.height;
-                    const ctx = thumbCanvas.getContext('2d');
-                    page.render({ canvasContext: ctx, viewport: viewport });
-                });
+                thumbnailsContainer.appendChild(thumbItem);
             }
-        }
 
-        // Sidebar Book Selection Highlight
-        function highlightActiveBook(bookId) {
-            document.querySelectorAll('.book-item').forEach(el => {
-                if (el.dataset.id === bookId) {
-                    el.classList.add('border-brand-500', 'bg-brand-50/50', 'dark:bg-brand-950/30');
-                } else {
-                    el.classList.remove('border-brand-500', 'bg-brand-50/50', 'dark:bg-brand-950/30');
-                }
+            // Initialize StPageFlip with optimized short animation speed
+            if (pageFlipInstance) {
+                pageFlipInstance.destroy();
+            }
+
+            pageFlipInstance = new St.PageFlip(flipbookEl, {
+                width: bookWidth,
+                height: bookHeight,
+                size: window.innerWidth >= 768 ? 'stretch' : 'fixed',
+                minWidth: 250,
+                maxWidth: 600,
+                minHeight: 350,
+                maxHeight: 800,
+                drawShadow: true,
+                maxShadowOpacity: 0.5,
+                showCover: true,
+                mobileScrollSupport: false,
+                useMouseEvents: true,
+                flippingTime: 400 // Short & snappy animation speed for smooth lag-free navigation
+            });
+
+            pageFlipInstance.loadFromHTML(document.querySelectorAll('#st-flipbook .page'));
+
+            pageFlipInstance.on('flip', (e) => {
+                const activeNum = e.data + 1;
+                currentPageNumEl.textContent = activeNum;
+                jumpPageInput.value = activeNum;
             });
         }
 
-        // Toggle Fullscreen View Mode
-        function toggleFullscreen() {
+        // Navigation Button Listeners
+        prevBtn.addEventListener('click', () => {
+            if (pageFlipInstance) pageFlipInstance.flipPrev();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (pageFlipInstance) pageFlipInstance.flipNext();
+        });
+
+        // Jump to Page Handler
+        jumpBtn.addEventListener('click', () => {
+            const pageNum = parseInt(jumpPageInput.value);
+            if (pageNum >= 1 && pageNum <= totalPagesCount && pageFlipInstance) {
+                pageFlipInstance.flip(pageNum - 1);
+            } else {
+                alert(`Please enter a valid page number between 1 and ${totalPagesCount}`);
+            }
+        });
+
+        jumpPageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') jumpBtn.click();
+        });
+
+        // Keyboard Navigation (Arrow Keys)
+        document.addEventListener('keydown', (e) => {
+            if (!pageFlipInstance) return;
+            if (e.key === 'ArrowRight') {
+                pageFlipInstance.flipNext();
+            } else if (e.key === 'ArrowLeft') {
+                pageFlipInstance.flipPrev();
+            }
+        });
+
+        // Fullscreen Mode
+        fullscreenBtn.addEventListener('click', () => {
+            const viewport = document.getElementById('reader-viewport');
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
+                viewport.requestFullscreen().catch(err => {
                     alert(`Error attempting to enable fullscreen: ${err.message}`);
                 });
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
+                document.exitFullscreen();
             }
-        }
-
-        // Toggle Dark / Light Mode
-        function toggleTheme() {
-            const isDark = document.documentElement.classList.toggle('dark');
-            document.getElementById('theme-text').textContent = isDark ? 'Light Mode' : 'Dark Mode';
-        }
-
-        // Reload Book upon orientation/view structural change
-        function reloadCurrentBook() {
-            if (!state.currentBookId) return;
-            const currentP = state.currentPage;
-            loadBookIntoReader(state.currentBookId).then(() => {
-                setTimeout(() => {
-                    if (state.pageFlip) state.pageFlip.flip(currentP - 1);
-                }, 300);
-            });
-        }
-
-        // Resize Event Handler
-        function handleResize() {
-            if (state.currentBookId) {
-                reloadCurrentBook();
-            }
-        }
-
-        // UI Spinner Helper
-        function showLoading(show, text = "Loading...") {
-            if (show) {
-                dom.loadingText.textContent = text;
-                dom.loadingSpinner.classList.remove('hidden');
-            } else {
-                dom.loadingSpinner.classList.add('hidden');
-            }
-        }
-
-        // Utility: Debounce execution helper
-        function debounce(func, wait) {
-            let timeout;
-            return function(...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), wait);
-            };
-        }
-
-        // Start App on Window DOM Ready
-        window.onload = function() {
-            initApp();
-        };
+        });
     </script>
 </body>
 </html>
