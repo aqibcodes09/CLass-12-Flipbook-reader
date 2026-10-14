@@ -6,6 +6,24 @@
     <title>Class 12 Smart E-Textbook Hub</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
@@ -19,122 +37,134 @@
     <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background-color 0.3s, color 0.3s; }
         .glass-panel {
-            background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            -webkit-backdrop-filter: blur(16px);
         }
-        /* Custom Scrollbar */
+        /* Custom Scrollbars */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.6); }
+        
+        .page {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col overflow-x-hidden dark">
 
     <!-- Top Navigation Bar -->
-    <header class="glass-panel sticky top-0 z-50 px-4 py-3 flex items-center justify-between border-b border-slate-800">
-        <div class="flex items-center space-x-3">
-            <button id="toggle-sidebar" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2.5 rounded-xl transition shadow-lg flex items-center justify-center">
-                <i class="fa-solid fa-bars text-lg"></i>
-            </button>
-            <div class="flex items-center space-x-2">
-                <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/30">
-                    <i class="fa-solid fa-book-open text-lg"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-base md:text-lg tracking-wide text-white">Class 12 <span class="text-indigo-400">E-Library</span></h1>
-                    <p class="text-xs text-slate-400 hidden sm:block">Permanent Offline Storage & 3D Reader</p>
+    <header class="glass-panel sticky top-0 z-50 px-4 py-3 border-b border-slate-800 bg-slate-900/80 dark:bg-slate-900/80 dark:border-slate-800 light:bg-white/80 light:border-slate-200 text-slate-100 dark:text-slate-100 transition-colors">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <!-- Sidebar Toggle Button (Open/Close) -->
+                <button id="toggle-sidebar" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-200 transition shadow-sm flex items-center justify-center">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+                <div class="flex items-center space-x-2.5">
+                    <div class="bg-brand-600 p-2.5 rounded-xl text-white shadow-lg shadow-brand-500/30">
+                        <i class="fa-solid fa-book-open text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-base md:text-lg tracking-wide">Class 12 <span class="text-brand-500">Smart Reader</span></h1>
+                        <p class="text-xs text-slate-400 hidden sm:block">3D Digital Flipbook Library</p>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Quick Actions & Status -->
-        <div class="flex items-center space-x-2 md:space-x-3">
-            <span id="storage-badge" class="text-xs px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1.5">
-                <i class="fa-solid fa-database text-[10px]"></i> <span id="saved-books-count">0</span> Saved
-            </span>
-            <label class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
-                <i class="fa-solid fa-cloud-arrow-up"></i>
-                <span class="hidden sm:inline">Upload PDF</span>
-                <input type="file" id="pdf-upload" accept="application/pdf" class="hidden" multiple>
-            </label>
+            <!-- Header Right Action Tools -->
+            <div class="flex items-center space-x-2 md:space-x-3">
+                <!-- Saved Books Counter -->
+                <span id="storage-badge" class="text-xs px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium hidden sm:flex items-center gap-1.5">
+                    <i class="fa-solid fa-database text-[10px]"></i> <span id="saved-books-count">0</span> Books Saved
+                </span>
+
+                <!-- Dark / Light Theme Toggle -->
+                <button id="theme-toggle" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 dark:text-amber-400 transition shadow-sm" title="Toggle Theme">
+                    <i id="theme-icon" class="fa-solid fa-sun text-lg"></i>
+                </button>
+
+                <!-- PDF Upload Button -->
+                <label class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer shadow-lg shadow-brand-600/30 transition flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span class="hidden sm:inline">Upload PDF</span>
+                    <input type="file" id="pdf-upload" accept="application/pdf" class="hidden" multiple>
+                </label>
+            </div>
         </div>
     </header>
 
     <!-- Main Workspace Layout -->
     <div class="flex-1 flex relative overflow-hidden">
         
-        <!-- Sidebar: Books List & Thumbnail Drawer -->
-        <aside id="sidebar" class="glass-panel w-80 lg:w-96 flex-shrink-0 flex flex-col border-r border-slate-800 transition-all duration-300 z-40 absolute lg:relative inset-y-0 left-0 transform -translate-x-full lg:translate-x-0">
+        <!-- Collapsible Left Sidebar -->
+        <aside id="sidebar" class="glass-panel w-80 lg:w-88 flex-shrink-0 flex flex-col border-r border-slate-800 bg-slate-900/95 dark:bg-slate-900/95 dark:border-slate-800 transition-all duration-300 z-40 absolute lg:relative inset-y-0 left-0 transform -translate-x-full lg:translate-x-0">
             <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-                <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fa-solid fa-books text-indigo-400"></i> My Textbooks
+                <h2 class="font-semibold text-sm uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <i class="fa-solid fa-books text-brand-500"></i> My Textbooks
                 </h2>
-                <button id="close-sidebar" class="lg:hidden text-slate-400 hover:text-white p-1">
+                <button id="close-sidebar" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
 
-            <!-- Book List Container -->
+            <!-- PDF Books List -->
             <div id="books-list" class="flex-1 overflow-y-auto p-4 space-y-3">
-                <!-- Dynamically populated books -->
                 <div class="text-center py-12 text-slate-500 text-sm">
                     <i class="fa-solid fa-folder-open text-3xl mb-3 block opacity-40"></i>
                     No books uploaded yet.<br>Click "Upload PDF" to start!
                 </div>
             </div>
 
-            <!-- Thumbnail Quick-Jump Section (Active Book) -->
-            <div id="thumbnail-section" class="border-t border-slate-800 p-4 bg-slate-900/50 hidden">
+            <!-- Page Thumbnail Drawer -->
+            <div id="thumbnail-section" class="border-t border-slate-800 p-4 bg-slate-950/40 hidden">
                 <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
-                    <span>Page Thumbnails</span>
-                    <span id="thumb-count" class="text-[10px] text-indigo-400"></span>
+                    <span>Thumbnails</span>
+                    <span id="thumb-count" class="text-[10px] text-brand-400"></span>
                 </h3>
-                <div id="thumbnails-container" class="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
+                <div id="thumbnails-container" class="grid grid-cols-4 gap-2 max-h-44 overflow-y-auto pr-1">
                     <!-- Dynamic Page Thumbs -->
                 </div>
             </div>
         </aside>
 
-        <!-- Main Reader Viewport -->
-        <main class="flex-1 flex flex-col bg-slate-900/40 relative overflow-hidden">
+        <!-- Central Flipbook Reading Area -->
+        <main class="flex-1 flex flex-col bg-slate-950/60 dark:bg-slate-950/60 relative overflow-hidden">
             
-            <!-- Reader Toolbar -->
-            <div id="reader-toolbar" class="glass-panel border-b border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 z-30 hidden">
-                <!-- Book Title & Current Info -->
+            <!-- Floating Reader Control Bar -->
+            <div id="reader-toolbar" class="glass-panel border-b border-slate-800 bg-slate-900/70 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 z-30 hidden">
                 <div class="flex items-center space-x-3">
-                    <h3 id="current-book-title" class="font-bold text-sm md:text-base text-white truncate max-w-[200px] md:max-w-xs"></h3>
+                    <h3 id="current-book-title" class="font-bold text-sm md:text-base text-white truncate max-w-[180px] sm:max-w-xs md:max-w-md"></h3>
                     <span class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">
-                        Page <span id="current-page-num">1</span> of <span id="total-pages">1</span>
+                        Page <span id="current-page-num" class="text-brand-400 font-bold">1</span> of <span id="total-pages">1</span>
                     </span>
                 </div>
 
-                <!-- Page Jump & Zoom Controls -->
+                <!-- Jump To Page & Controls -->
                 <div class="flex items-center space-x-2">
-                    <div class="flex items-center bg-slate-800 rounded-xl border border-slate-700 px-2 py-1">
-                        <span class="text-xs text-slate-400 mr-2 hidden sm:inline">Jump:</span>
-                        <input type="number" id="jump-page-input" min="1" class="w-12 bg-slate-900 text-center text-xs text-white rounded focus:outline-none py-0.5">
-                        <button id="jump-btn" class="ml-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1 rounded transition">Go</button>
+                    <div class="flex items-center bg-slate-800/80 rounded-xl border border-slate-700 px-2 py-1">
+                        <span class="text-xs text-slate-400 mr-2 hidden sm:inline">Go to:</span>
+                        <input type="number" id="jump-page-input" min="1" class="w-12 bg-slate-900 text-center text-xs text-white rounded focus:outline-none py-0.5 border border-slate-700">
+                        <button id="jump-btn" class="ml-2 bg-brand-600 hover:bg-brand-500 text-white text-xs px-2.5 py-1 rounded transition font-medium">Jump</button>
                     </div>
 
-                    <button id="fullscreen-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5">
+                    <button id="fullscreen-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5 border border-slate-700">
                         <i class="fa-solid fa-expand"></i> <span class="hidden md:inline">Fullscreen</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Flipbook Stage Canvas -->
+            <!-- Interactive Flipbook Canvas Wrapper -->
             <div id="reader-viewport" class="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
-                <!-- Initial State Placeholder -->
+                <!-- Welcome / Empty Placeholder -->
                 <div id="reader-placeholder" class="text-center p-8 max-w-md">
-                    <div class="w-20 h-20 bg-indigo-600/10 text-indigo-400 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-indigo-500/20 shadow-xl">
+                    <div class="w-20 h-20 bg-brand-600/10 text-brand-400 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-brand-500/20 shadow-xl">
                         <i class="fa-solid fa-graduation-cap text-3xl"></i>
                     </div>
-                    <h2 class="text-lg font-bold text-white mb-2">Select a Textbook to Read</h2>
-                    <p class="text-sm text-slate-400">Choose a book from your sidebar library or upload a new Class 12 PDF to begin your smart study session.</p>
+                    <h2 class="text-xl font-bold text-white mb-2">Select a Textbook to Read</h2>
+                    <p class="text-sm text-slate-400 leading-relaxed">Select any book from the left sidebar or upload your Class 12 PDF textbooks for permanent access & real 3D page turning.</p>
                 </div>
 
                 <!-- Flipbook Container -->
@@ -143,31 +173,31 @@
                 </div>
             </div>
 
-            <!-- Bottom Navigation Bar -->
-            <div id="reader-footer" class="glass-panel border-t border-slate-800 px-4 py-3 flex items-center justify-center space-x-4 z-30 hidden">
-                <button id="prev-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2 shadow">
-                    <i class="fa-solid fa-chevron-left"></i> Previous
+            <!-- Page Navigation Bottom Footer Bar -->
+            <div id="reader-footer" class="glass-panel border-t border-slate-800 bg-slate-900/80 px-4 py-3 flex items-center justify-center space-x-4 z-30 hidden">
+                <button id="prev-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-5 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2 border border-slate-700 shadow">
+                    <i class="fa-solid fa-chevron-left text-xs"></i> Previous
                 </button>
-                <div class="text-xs text-slate-400 font-medium">
-                    Use arrow keys <kbd class="bg-slate-800 px-1.5 py-0.5 rounded text-slate-200">←</kbd> <kbd class="bg-slate-800 px-1.5 py-0.5 rounded text-slate-200">→</kbd> to turn pages
+                <div class="text-xs text-slate-400 font-medium hidden sm:block">
+                    Use <kbd class="bg-slate-800 px-1.5 py-0.5 rounded text-slate-200 border border-slate-700">←</kbd> <kbd class="bg-slate-800 px-1.5 py-0.5 rounded text-slate-200 border border-slate-700">→</kbd> keys to turn pages
                 </div>
-                <button id="next-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2 shadow shadow-indigo-600/30">
-                    Next <i class="fa-solid fa-chevron-right"></i>
+                <button id="next-btn" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2 shadow shadow-brand-600/30">
+                    Next <i class="fa-solid fa-chevron-right text-xs"></i>
                 </button>
             </div>
         </main>
     </div>
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex flex-col items-center justify-center">
-        <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p id="loading-text" class="text-sm font-medium text-slate-200">Processing PDF & caching pages...</p>
+    <!-- Smooth Loading Screen Indicator -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center">
+        <div class="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p id="loading-text" class="text-sm font-medium text-slate-200">Optimizing & Loading Book Pages...</p>
     </div>
 
-    <!-- JavaScript Application Logic -->
+    <!-- Application Script Engine -->
     <script>
-        // IndexedDB Permanent Storage Setup
-        const DB_NAME = "Class12TextbookDB";
+        // IndexedDB Permanent Database Config
+        const DB_NAME = "Class12TextbookDB_v2";
         const STORE_NAME = "pdfs";
         let db = null;
 
@@ -218,17 +248,18 @@
             });
         }
 
-        // App State
+        // State Variables
         let currentPDFDoc = null;
         let pageFlipInstance = null;
         let currentBookId = null;
         let totalPagesCount = 0;
-        let isMobile = window.innerWidth < 768;
 
-        // DOM Elements
+        // Elements
         const sidebar = document.getElementById('sidebar');
         const toggleSidebarBtn = document.getElementById('toggle-sidebar');
         const closeSidebarBtn = document.getElementById('close-sidebar');
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
         const pdfUploadInput = document.getElementById('pdf-upload');
         const booksListEl = document.getElementById('books-list');
         const savedBooksCountEl = document.getElementById('saved-books-count');
@@ -250,7 +281,7 @@
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingText = document.getElementById('loading-text');
 
-        // Sidebar Toggle Handler
+        // Sidebar Toggle
         toggleSidebarBtn.addEventListener('click', () => {
             sidebar.classList.toggle('-translate-x-full');
         });
@@ -258,17 +289,31 @@
             sidebar.classList.add('-translate-x-full');
         });
 
-        // Initialize App on Load
+        // Dark / Light Theme Switching
+        themeToggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            document.body.classList.toggle('light');
+            
+            if (document.body.classList.contains('dark')) {
+                themeIcon.className = 'fa-solid fa-sun text-lg';
+                themeToggleBtn.className = 'p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 transition shadow-sm';
+            } else {
+                themeIcon.className = 'fa-solid fa-moon text-lg';
+                themeToggleBtn.className = 'p-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 transition shadow-sm';
+            }
+        });
+
+        // App Initialization
         window.addEventListener('DOMContentLoaded', async () => {
             try {
                 await initDB();
                 await loadSavedBooksList();
             } catch (err) {
-                console.error("IndexedDB initialization error:", err);
+                console.error("Database Init Failed:", err);
             }
         });
 
-        // File Upload Handler with Permanent Storage
+        // PDF Upload & Save Handler
         pdfUploadInput.addEventListener('change', async (e) => {
             const files = e.target.files;
             if (!files.length) return;
@@ -279,7 +324,7 @@
             for (let file of files) {
                 try {
                     const arrayBuffer = await file.arrayBuffer();
-                    const bookId = 'book_' + Date.now() + '_' + Math.random().toString(36.substring(2, 7));
+                    const bookId = 'book_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
                     const bookTitle = file.name.replace(/\.[^/.]+$/, "");
                     await savePDFToDB(bookId, bookTitle, arrayBuffer);
                 } catch (err) {
@@ -292,7 +337,7 @@
             loadingOverlay.classList.add('hidden');
         });
 
-        // Load Books List from DB
+        // Render Books List in Sidebar
         async function loadSavedBooksList() {
             const books = await getAllPDFsFromDB();
             savedBooksCountEl.textContent = books.length;
@@ -309,16 +354,17 @@
 
             booksListEl.innerHTML = '';
             books.forEach(book => {
+                const isActive = currentBookId === book.id;
                 const bookCard = document.createElement('div');
-                bookCard.className = `group flex items-center justify-between p-3 rounded-xl border transition cursor-pointer ${currentBookId === book.id ? 'bg-indigo-600/10 border-indigo-500/30 text-white' : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-800/80'}`;
+                bookCard.className = `group flex items-center justify-between p-3 rounded-xl border transition cursor-pointer ${isActive ? 'bg-brand-600/10 border-brand-500/40 text-white' : 'bg-slate-800/40 border-slate-700/60 text-slate-300 hover:bg-slate-800/80'}`;
                 bookCard.innerHTML = `
                     <div class="flex items-center space-x-3 overflow-hidden" onclick="openBook('${book.id}')">
-                        <div class="w-9 h-9 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center flex-shrink-0">
+                        <div class="w-9 h-9 rounded-lg bg-brand-600/20 text-brand-400 flex items-center justify-center flex-shrink-0">
                             <i class="fa-solid fa-book"></i>
                         </div>
                         <div class="truncate">
-                            <h4 class="text-xs font-semibold truncate group-hover:text-indigo-300">${book.title}</h4>
-                            <p class="text-[10px] text-slate-500">Class 12 Textbook</p>
+                            <h4 class="text-xs font-semibold truncate group-hover:text-brand-300">${book.title}</h4>
+                            <p class="text-[10px] text-slate-400">Class 12 Textbook</p>
                         </div>
                     </div>
                     <button onclick="deleteBook(event, '${book.id}')" class="text-slate-500 hover:text-red-400 p-1.5 transition">
@@ -329,10 +375,10 @@
             });
         }
 
-        // Delete Book Handler
+        // Delete Book
         window.deleteBook = async function(event, id) {
             event.stopPropagation();
-            if (confirm("Are you sure you want to permanently delete this textbook?")) {
+            if (confirm("Permanently delete this textbook?")) {
                 await deletePDFFromDB(id);
                 if (currentBookId === id) {
                     location.reload();
@@ -342,7 +388,7 @@
             }
         };
 
-        // Open and Render Book in 3D Flipbook
+        // Open Book Function
         window.openBook = async function(id) {
             loadingOverlay.classList.remove('hidden');
             loadingText.textContent = "Loading textbook pages...";
@@ -364,7 +410,6 @@
                 totalPagesEl.textContent = totalPagesCount;
                 jumpPageInput.max = totalPagesCount;
 
-                // UI transition
                 readerPlaceholder.classList.add('hidden');
                 flipbookWrapper.classList.remove('hidden');
                 readerToolbar.classList.remove('hidden');
@@ -372,7 +417,7 @@
                 thumbnailSection.classList.remove('hidden');
                 thumbCountEl.textContent = `${totalPagesCount} Pages`;
 
-                if (window.innerWidth < 768) {
+                if (window.innerWidth < 1024) {
                     sidebar.classList.add('-translate-x-full');
                 }
 
@@ -380,35 +425,31 @@
                 await loadSavedBooksList();
 
             } catch (err) {
-                console.error("Error loading PDF document:", err);
-                alert("Failed to render PDF. Please ensure the file is valid.");
+                console.error("Error loading PDF:", err);
+                alert("Failed to render PDF.");
             }
 
             loadingOverlay.classList.add('hidden');
         };
 
-        // Build Flipbook & Thumbnails with Optimized Canvas Rendering
+        // Render Canvas Pages & Build Flipbook Engine
         async function buildFlipbookAndThumbnails() {
             const flipbookEl = document.getElementById('st-flipbook');
             flipbookEl.innerHTML = '';
             thumbnailsContainer.innerHTML = '';
 
-            // Calculate responsive book size
             const viewportWidth = document.getElementById('reader-viewport').clientWidth;
             const viewportHeight = document.getElementById('reader-viewport').clientHeight;
             
             let bookWidth = Math.min(420, Math.floor((viewportWidth - 40) / (window.innerWidth >= 768 ? 2 : 1)));
-            let bookHeight = Math.min(580, Math.floor(viewportHeight - 80));
+            let bookHeight = Math.min(580, Math.floor(viewportHeight - 70));
 
-            if (bookWidth < 250) bookWidth = 250;
-            if (bookHeight < 350) bookHeight = 350;
+            if (bookWidth < 240) bookWidth = 240;
+            if (bookHeight < 340) bookHeight = 340;
 
-            const pagesData = [];
-
-            // Render all pages to high-performance canvas elements
             for (let i = 1; i <= totalPagesCount; i++) {
                 const page = await currentPDFDoc.getPage(i);
-                const viewport = page.getViewport({ scale: 1.5 });
+                const viewport = page.getViewport({ scale: 1.4 });
                 
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
@@ -417,35 +458,33 @@
                 
                 await page.render({ canvasContext: context, viewport: viewport }).promise;
 
-                // Create page element for flipbook
+                // Flipbook Page Wrapper
                 const pageDiv = document.createElement('div');
-                pageDiv.className = 'page bg-white shadow-md flex items-center justify-center overflow-hidden';
+                pageDiv.className = 'page bg-white shadow-lg flex items-center justify-center overflow-hidden';
                 canvas.style.width = '100%';
                 canvas.style.height = '100%';
                 pageDiv.appendChild(canvas);
                 flipbookEl.appendChild(pageDiv);
 
-                // Create Thumbnail
+                // Thumbnail Canvas
                 const thumbCanvas = document.createElement('canvas');
                 const thumbCtx = thumbCanvas.getContext('2d');
-                const thumbViewport = page.getViewport({ scale: 0.2 });
+                const thumbViewport = page.getViewport({ scale: 0.18 });
                 thumbCanvas.width = thumbViewport.width;
                 thumbCanvas.height = thumbViewport.height;
                 await page.render({ canvasContext: thumbCtx, viewport: thumbViewport }).promise;
 
                 const thumbItem = document.createElement('div');
-                thumbItem.className = 'cursor-pointer rounded border border-slate-700 overflow-hidden hover:border-indigo-500 transition bg-slate-950 text-center';
+                thumbItem.className = 'cursor-pointer rounded border border-slate-700 overflow-hidden hover:border-brand-500 transition bg-slate-950 text-center';
                 thumbItem.innerHTML = `<div class="p-0.5"></div><span class="text-[9px] text-slate-400 font-medium">${i}</span>`;
                 thumbItem.firstChild.appendChild(thumbCanvas);
                 thumbItem.addEventListener('click', () => {
-                    if (pageFlipInstance) {
-                        pageFlipInstance.flip(i - 1);
-                    }
+                    if (pageFlipInstance) pageFlipInstance.flip(i - 1);
                 });
                 thumbnailsContainer.appendChild(thumbItem);
             }
 
-            // Initialize StPageFlip with optimized short animation speed
+            // StPageFlip Initialization (Fast 350ms turn speed)
             if (pageFlipInstance) {
                 pageFlipInstance.destroy();
             }
@@ -454,16 +493,16 @@
                 width: bookWidth,
                 height: bookHeight,
                 size: window.innerWidth >= 768 ? 'stretch' : 'fixed',
-                minWidth: 250,
+                minWidth: 240,
                 maxWidth: 600,
-                minHeight: 350,
+                minHeight: 340,
                 maxHeight: 800,
                 drawShadow: true,
-                maxShadowOpacity: 0.5,
+                maxShadowOpacity: 0.4,
                 showCover: true,
                 mobileScrollSupport: false,
                 useMouseEvents: true,
-                flippingTime: 400 // Short & snappy animation speed for smooth lag-free navigation
+                flippingTime: 350 // Short & fast animation
             });
 
             pageFlipInstance.loadFromHTML(document.querySelectorAll('#st-flipbook .page'));
@@ -475,7 +514,7 @@
             });
         }
 
-        // Navigation Button Listeners
+        // Navigation Controls
         prevBtn.addEventListener('click', () => {
             if (pageFlipInstance) pageFlipInstance.flipPrev();
         });
@@ -484,13 +523,12 @@
             if (pageFlipInstance) pageFlipInstance.flipNext();
         });
 
-        // Jump to Page Handler
         jumpBtn.addEventListener('click', () => {
             const pageNum = parseInt(jumpPageInput.value);
             if (pageNum >= 1 && pageNum <= totalPagesCount && pageFlipInstance) {
                 pageFlipInstance.flip(pageNum - 1);
             } else {
-                alert(`Please enter a valid page number between 1 and ${totalPagesCount}`);
+                alert(`Please enter a valid page number (1 to ${totalPagesCount})`);
             }
         });
 
@@ -498,23 +536,18 @@
             if (e.key === 'Enter') jumpBtn.click();
         });
 
-        // Keyboard Navigation (Arrow Keys)
+        // Keyboard Arrow Navigation
         document.addEventListener('keydown', (e) => {
             if (!pageFlipInstance) return;
-            if (e.key === 'ArrowRight') {
-                pageFlipInstance.flipNext();
-            } else if (e.key === 'ArrowLeft') {
-                pageFlipInstance.flipPrev();
-            }
+            if (e.key === 'ArrowRight') pageFlipInstance.flipNext();
+            if (e.key === 'ArrowLeft') pageFlipInstance.flipPrev();
         });
 
-        // Fullscreen Mode
+        // Fullscreen Toggle
         fullscreenBtn.addEventListener('click', () => {
             const viewport = document.getElementById('reader-viewport');
             if (!document.fullscreenElement) {
-                viewport.requestFullscreen().catch(err => {
-                    alert(`Error attempting to enable fullscreen: ${err.message}`);
-                });
+                viewport.requestFullscreen().catch(err => alert(err.message));
             } else {
                 document.exitFullscreen();
             }
